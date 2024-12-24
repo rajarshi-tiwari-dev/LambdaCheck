@@ -4,12 +4,36 @@ from pymongo import MongoClient
 from datetime import datetime, timedelta
 
 
-MONGO_URI = os.getenv("MONGO_URI", "")
-MONGO_DB = os.getenv("MONGO_DB", "")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://common_qa_rw:sUTXmZEPXd33PIL8@common-qa.szl1r.mongodb.net/?retryWrites=true")
+MONGO_DB = os.getenv("MONGO_DB", "fraudService")
 MONGO_COLLECTION = os.getenv("MONGO_COLLECTION", "userMetadata")
 
-# Connect to MongoDB
-client = MongoClient(MONGO_URI)
+# Configuration options
+host = os.getenv("MONGO_HOST", "dms-mongo-1.zepto.stage")
+port = int(os.getenv("MONGO_PORT", 27017))
+user = os.getenv("MONGO_USER", "admin")
+password = os.getenv("MONGO_PASSWORD", "admin")
+connect_timeout_ms = int(os.getenv("CONNECT_TIMEOUT_MS", 1000))  # Default: 10 seconds
+max_pool_size = int(os.getenv("MAX_POOL_SIZE", 100))
+min_pool_size = int(os.getenv("MIN_POOL_SIZE", 10))
+max_idle_time_ms = int(os.getenv("MAX_IDLE_TIME_MS", 1000))  # Default: 5 minutes
+
+# Construct the connection URI
+if user and password:
+    connection_uri = f"mongodb://{user}:{password}@{host}:{port}/"
+else:
+    connection_uri = f"mongodb://{host}:{port}/"
+
+# MongoClient with additional options
+client = MongoClient(
+    connection_uri,
+    connectTimeoutMS=connect_timeout_ms,
+    maxPoolSize=max_pool_size,
+    minPoolSize=min_pool_size,
+    maxIdleTimeMS=max_idle_time_ms,
+)
+
+# Access the database and collection
 db = client[MONGO_DB]
 collection = db[MONGO_COLLECTION]
 
@@ -76,7 +100,7 @@ def create_user_document(event_data):
         "other_app_info": app_info,
     }
 
-    return document
+    return document, user_id
 
 def lambda_handler(event, context):
     """
@@ -89,11 +113,21 @@ def lambda_handler(event, context):
                 payload = json.loads(message["value"])
 
                 # Generate the document for MongoDB
-                document = create_user_document(payload)
+                document, user_id = create_user_document(payload)
 
-                # Upserting should be done here
-                collection.insert_one(document)
-                print(f"Inserted document for user ID: {document['_id']}")
+                query = {"_id": user_id}
+
+                try:
+                    result = collection.update_one(query, document, upsert=True)
+                    if result.matched_count > 0:
+                        print("Document updated successfully!")
+                    elif result.upserted_id is not None:
+                        print(f"Document inserted with ID: {result.upserted_id}")
+                    else:
+                        print("No changes made to the collection.")
+                except Exception as e:
+                    print(f"Error performing upsert operation: {e}")
+
 
         return {
             "statusCode": 200,
