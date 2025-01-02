@@ -1,57 +1,6 @@
-db.createCollection("userMetadata", {
-    validator: {
-        $jsonSchema: {
-            bsonType: "object",
-            required: ["_id", "user_aggregate", "other_app_info", "created_at"],
-            properties: {
-                _id: { bsonType: "string", description: "Must be a UUID string" },
-                user_aggregate: {
-                    bsonType: "object",
-                    properties: {
-                        user_user_device_brand: {
-                            bsonType: "string",
-                            description: "Brand of the user's device"
-                        },
-                        user_user_device_model: {
-                            bsonType: "string",
-                            description: "Model of the user's device"
-                        },
-                        user_user_device_platform: {
-                            bsonType: "string",
-                            description: "Platform of the user's device"
-                        },
-                        user_wallet_balance_bucket_78: {
-                            bsonType: "int",
-                            description: "User wallet balance"
-                        }
-                    }
-                },
-                other_app_info: {
-                    bsonType: "object",
-                    properties: {
-                        com_application_zomato: { bsonType: "string" },
-                        com_facebook_katana: { bsonType: "string" },
-                        com_flipkart_android: { bsonType: "string" },
-                        com_grofers_customerapp: { bsonType: "string" },
-                        com_instagram_android: { bsonType: "string" },
-                        com_linkedin_android: { bsonType: "string" },
-                        com_phonepe_app: { bsonType: "string" },
-                        com_whatsapp: { bsonType: "string" },
-                        in_amazon_mshop_android_shopping: { bsonType: "string" },
-                        in_swiggy_android: { bsonType: "string" },
-                        net_one97_paytm: { bsonType: "string" },
-                        com_zerodha_kite3: { bsonType: "string" },
-                        com_twitter_android: { bsonType: "string" }
-                    }
-                }
-            }
-        }
-    }
-});
-
-
+db.createCollection("userMetadata");
 
 db.userMetadata.createIndex(
-    { _modifiedTS: 1 },
-    { expireAfterSeconds: 3 * 24 * 60 * 60 }
+    { created_at: 1 },
+    { expireAfterSeconds: 24 * 60 * 60 }
 );
